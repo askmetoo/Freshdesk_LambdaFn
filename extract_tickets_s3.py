@@ -11,7 +11,7 @@ import logging
 from sys import stdout
 import sys
 from settings import apiconfig, timezone
-from helper_functions import ChangeDateToLocalTimeZone,BusinessHoursTable,CalculateFirstResponseTime,CalculateResolutionTime,GetResolutionStatus
+from helper_functions import ChangeDateToLocalTimeZone,BusinessHoursTable,CalculateFirstResponseTime,CalculateResolutionTime,GetResolutionStatus,DecryptKeys
 from freshdesk_class import API
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -24,13 +24,15 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 # Retrive the parameters
-api_key = apiconfig['API']
-domain = apiconfig['DOMAIN']
-months = apiconfig['MONTH']
 source_tz = timezone['SOURCE_TZ']
 dest_tz = timezone['DEST_TZ']
 
 if __name__ == "__main__":
+    # Decrypt the security keys
+    d_keys = DecryptKeys(apiconfig)
+    api_key = d_keys['api']
+    domain = d_keys['domain']
+    months = d_keys['month']
 
     api = API(domain, api_key,months)
     api.tickets.createDf()

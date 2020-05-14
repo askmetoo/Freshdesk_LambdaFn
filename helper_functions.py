@@ -9,6 +9,9 @@ import json
 import logging
 from sys import stdout
 import sys
+from settings import apiconfig
+import base64
+from Crypto.Cipher import AES
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -111,66 +114,68 @@ def BusinessHoursTable(api_key):
 #-------------------------------------------------------------------------------------------------
 def CalculateFirstResponseTime(created_dt,first_responded_dt,Country,Buss_hrs_df):
     
-    # If the first_responded_dt is not found, populate first_response_time_hrs with 0.00
-    if first_responded_dt == '' or pd.isnull(first_responded_dt) or first_responded_dt is None :
-        first_response_time_hrs = 0.00
-    else:
-   
-        Df_business_hrs = Buss_hrs_df.copy()
-        date_tz = 'Asia/Singapore'
-        
-        Df_business_hrs['Country_TimeZone'] = Df_business_hrs['Country_TimeZone'].replace('Sydney', 'Australia')
-        Df_business_hrs['Country_TimeZone'] = Df_business_hrs['Country_TimeZone'].replace('Tokyo', 'Japan')
-
-        if (Country == "HK" or Country == "HKG"):
-            Cntry = 'Hong Kong'
-        elif (Country == "SG" or Country == "SIN"):
-            Cntry = 'Singapore'
-        else:
-            Cntry = Country
-
-        Start_Hour=9
-        Start_Min=0
-        End_Hour=18
-        End_Min=0
-        Cntry_tz='Singapore'
-
-        for i, row in Df_business_hrs.iterrows(): 
-            if Cntry == row['Country_TimeZone'] : 
-                Start_Hour=int(row['Start_Hour'])
-                Start_Min=int(row['Start_Min'])
-                End_Hour=int(row['End_Hour'])
-                End_Min=int(row['End_Min'])
-                Cntry_tz=Cntry
-                if Cntry_tz != "Singapore" :
-                    created_dt = ChangeDateToLocalTimeZone(created_dt,date_tz,row['Timezone'])
-                    first_responded_dt = ChangeDateToLocalTimeZone(first_responded_dt,date_tz,row['Timezone'])  
-                break
-
-        starttime=time(Start_Hour,Start_Min,0)
-        endtime=time(End_Hour,End_Min,0) 
-
-        if Cntry_tz == 'Hong Kong':
-            Cntry_tz = 'HongKong'
-        
-        # Public holiday list of the country
-        holidaylist = pyholidays.CountryHoliday(Cntry_tz)
-        unit='hour'
-        first_response_time_hrs = 0.00
-        #By default weekends are Saturday and Sunday
-        
-        created_dt=datetime.strptime(created_dt, '%Y-%m-%d %H:%M:%S')
-        first_responded_dt=datetime.strptime(first_responded_dt, '%Y-%m-%d %H:%M:%S')
-        first_response_time = (businessDuration(created_dt,first_responded_dt,starttime,endtime,holidaylist=holidaylist,unit=unit))
-        
-        if first_response_time == '' or pd.isnull(first_response_time):
+    try:
+        # If the first_responded_dt is not found, populate first_response_time_hrs with 0.00
+        if first_responded_dt == '' or pd.isnull(first_responded_dt) or first_responded_dt is None :
             first_response_time_hrs = 0.00
         else:
-            first_response_time = round(first_response_time,2)
-            first_response_time_hrs = round(first_response_time/24,2)
     
-    return first_response_time_hrs  
+            Df_business_hrs = Buss_hrs_df.copy()
+            date_tz = 'Asia/Singapore'
+            
+            Df_business_hrs['Country_TimeZone'] = Df_business_hrs['Country_TimeZone'].replace('Sydney', 'Australia')
+            Df_business_hrs['Country_TimeZone'] = Df_business_hrs['Country_TimeZone'].replace('Tokyo', 'Japan')
 
+            if (Country == "HK" or Country == "HKG"):
+                Cntry = 'Hong Kong'
+            elif (Country == "SG" or Country == "SIN"):
+                Cntry = 'Singapore'
+            else:
+                Cntry = Country
+
+            Start_Hour=9
+            Start_Min=0
+            End_Hour=18
+            End_Min=0
+            Cntry_tz='Singapore'
+
+            for i, row in Df_business_hrs.iterrows(): 
+                if Cntry == row['Country_TimeZone'] : 
+                    Start_Hour=int(row['Start_Hour'])
+                    Start_Min=int(row['Start_Min'])
+                    End_Hour=int(row['End_Hour'])
+                    End_Min=int(row['End_Min'])
+                    Cntry_tz=Cntry
+                    if Cntry_tz != "Singapore" :
+                        created_dt = ChangeDateToLocalTimeZone(created_dt,date_tz,row['Timezone'])
+                        first_responded_dt = ChangeDateToLocalTimeZone(first_responded_dt,date_tz,row['Timezone'])  
+                    break
+
+            starttime=time(Start_Hour,Start_Min,0)
+            endtime=time(End_Hour,End_Min,0) 
+
+            if Cntry_tz == 'Hong Kong':
+                Cntry_tz = 'HongKong'
+            
+            # Public holiday list of the country
+            holidaylist = pyholidays.CountryHoliday(Cntry_tz)
+            unit='hour'
+            first_response_time_hrs = 0.00
+            #By default weekends are Saturday and Sunday
+            
+            created_dt=datetime.strptime(created_dt, '%Y-%m-%d %H:%M:%S')
+            first_responded_dt=datetime.strptime(first_responded_dt, '%Y-%m-%d %H:%M:%S')
+            first_response_time = (businessDuration(created_dt,first_responded_dt,starttime,endtime,holidaylist=holidaylist,unit=unit))
+            
+            if first_response_time == '' or pd.isnull(first_response_time):
+                first_response_time_hrs = 0.00
+            else:
+                first_response_time = round(first_response_time,2)
+                first_response_time_hrs = round(first_response_time/24,2)
+        
+        return first_response_time_hrs  
+    except:
+        logger.error("First Response time cannot be computed. Please check")
 
 #------------------------------------------------------------------------------------------------
 # Calculate the resolution time.
@@ -178,64 +183,67 @@ def CalculateFirstResponseTime(created_dt,first_responded_dt,Country,Buss_hrs_df
 #-------------------------------------------------------------------------------------------------
 def CalculateResolutionTime(created_dt,resolved_dt,Country,Buss_hrs_df):
     
-    # If the resolved_dt is not found, populate resolution_time_hrs with 0.00
-    if resolved_dt == '' or pd.isnull(resolved_dt) or resolved_dt is None :
-        resolution_time_hrs = 0.00
-    else:
-    
-        Df_business_hrs = Buss_hrs_df.copy()
-        date_tz = 'Asia/Singapore'
-
-        Df_business_hrs['Country_TimeZone'] = Df_business_hrs['Country_TimeZone'].replace('Sydney', 'Australia')
-        Df_business_hrs['Country_TimeZone'] = Df_business_hrs['Country_TimeZone'].replace('Tokyo', 'Japan')
-
-        if (Country == "HK" or Country == "HKG" or Country == "Hong Kong"):
-            Cntry = 'Hong Kong'
-        elif (Country == "SG" or Country == "SIN"):
-            Cntry = 'Singapore'
-        else:
-            Cntry = Country
-
-        Start_Hour=9
-        Start_Min=0
-        End_Hour=18
-        End_Min=0
-        Cntry_tz='Singapore'
-
-        for i, row in Df_business_hrs.iterrows():   
-            if Cntry == row['Country_TimeZone'] : 
-                Start_Hour=int(row['Start_Hour'])
-                Start_Min=int(row['Start_Min'])
-                End_Hour=int(row['End_Hour'])
-                End_Min=int(row['End_Min'])
-                Cntry_tz=Cntry
-                if Cntry_tz != "Singapore" :
-                    created_dt = ChangeDateToLocalTimeZone(created_dt,date_tz,row['Timezone'])
-                    resolved_dt = ChangeDateToLocalTimeZone(resolved_dt,date_tz,row['Timezone'])              
-                break
-
-        starttime=time(Start_Hour,Start_Min,0)
-        endtime=time(End_Hour,End_Min,0) 
-
-        if Cntry_tz == 'Hong Kong':
-            Cntry_tz = 'HongKong'
-
-        holidaylist = pyholidays.CountryHoliday(Cntry_tz)
-        unit='hour'
-
-        resolution_time_hrs = 0.00
-
-        #By default weekends are Saturday and Sunday
-        created_dt=datetime.strptime(created_dt, '%Y-%m-%d %H:%M:%S')
-        resolved_dt=datetime.strptime(resolved_dt, '%Y-%m-%d %H:%M:%S')
-        resolution_time = (businessDuration(created_dt,resolved_dt,starttime,endtime,holidaylist=holidaylist,unit=unit))
-        if resolution_time == '' or pd.isnull(resolution_time):
+    try:
+        # If the resolved_dt is not found, populate resolution_time_hrs with 0.00
+        if resolved_dt == '' or pd.isnull(resolved_dt) or resolved_dt is None :
             resolution_time_hrs = 0.00
         else:
-            resolution_time = round(resolution_time,2)
-            resolution_time_hrs = round(resolution_time/24,2)
+        
+            Df_business_hrs = Buss_hrs_df.copy()
+            date_tz = 'Asia/Singapore'
 
-    return resolution_time_hrs
+            Df_business_hrs['Country_TimeZone'] = Df_business_hrs['Country_TimeZone'].replace('Sydney', 'Australia')
+            Df_business_hrs['Country_TimeZone'] = Df_business_hrs['Country_TimeZone'].replace('Tokyo', 'Japan')
+
+            if (Country == "HK" or Country == "HKG" or Country == "Hong Kong"):
+                Cntry = 'Hong Kong'
+            elif (Country == "SG" or Country == "SIN"):
+                Cntry = 'Singapore'
+            else:
+                Cntry = Country
+
+            Start_Hour=9
+            Start_Min=0
+            End_Hour=18
+            End_Min=0
+            Cntry_tz='Singapore'
+
+            for i, row in Df_business_hrs.iterrows():   
+                if Cntry == row['Country_TimeZone'] : 
+                    Start_Hour=int(row['Start_Hour'])
+                    Start_Min=int(row['Start_Min'])
+                    End_Hour=int(row['End_Hour'])
+                    End_Min=int(row['End_Min'])
+                    Cntry_tz=Cntry
+                    if Cntry_tz != "Singapore" :
+                        created_dt = ChangeDateToLocalTimeZone(created_dt,date_tz,row['Timezone'])
+                        resolved_dt = ChangeDateToLocalTimeZone(resolved_dt,date_tz,row['Timezone'])              
+                    break
+
+            starttime=time(Start_Hour,Start_Min,0)
+            endtime=time(End_Hour,End_Min,0) 
+
+            if Cntry_tz == 'Hong Kong':
+                Cntry_tz = 'HongKong'
+
+            holidaylist = pyholidays.CountryHoliday(Cntry_tz)
+            unit='hour'
+
+            resolution_time_hrs = 0.00
+
+            #By default weekends are Saturday and Sunday
+            created_dt=datetime.strptime(created_dt, '%Y-%m-%d %H:%M:%S')
+            resolved_dt=datetime.strptime(resolved_dt, '%Y-%m-%d %H:%M:%S')
+            resolution_time = (businessDuration(created_dt,resolved_dt,starttime,endtime,holidaylist=holidaylist,unit=unit))
+            if resolution_time == '' or pd.isnull(resolution_time):
+                resolution_time_hrs = 0.00
+            else:
+                resolution_time = round(resolution_time,2)
+                resolution_time_hrs = round(resolution_time/24,2)
+
+        return resolution_time_hrs
+    except:
+        logger.error("Resolution time cannot be computed. Please check")
 
 #------------------------------------------------------------------------------------------------
 # Calculate the resolution status.
@@ -244,12 +252,38 @@ def CalculateResolutionTime(created_dt,resolved_dt,Country,Buss_hrs_df):
 # If resolution_dt <= resolution_due_dt ---> Within SLA
 #-------------------------------------------------------------------------------------------------
 def GetResolutionStatus(resolution_dt,resolution_due_dt):
-    sla_violation_flag = ''
-    if ( (resolution_dt == '' or pd.isnull(resolution_dt) or resolution_dt is None) or 
-            (resolution_due_dt == '' or pd.isnull(resolution_due_dt) or resolution_due_dt is None) ):
+
+    try:
         sla_violation_flag = ''
-    elif resolution_dt > resolution_due_dt:
-        sla_violation_flag = 'SLA Violated'
-    else: 
-        sla_violation_flag = 'Within SLA'
-    return sla_violation_flag   
+        if ( (resolution_dt == '' or pd.isnull(resolution_dt) or resolution_dt is None) or 
+                (resolution_due_dt == '' or pd.isnull(resolution_due_dt) or resolution_due_dt is None) ):
+            sla_violation_flag = ''
+        elif resolution_dt > resolution_due_dt:
+            sla_violation_flag = 'SLA Violated'
+        else: 
+            sla_violation_flag = 'Within SLA'
+        return sla_violation_flag 
+    except:
+        logger.info("Resolution Status not found. Please check")  
+
+def DecryptKeys(apiconfig):
+    e_api = apiconfig['API']
+    key = apiconfig['KEY']
+    domain = apiconfig['DOMAIN']
+    month = apiconfig['MONTH']
+    
+    try:
+        cipher = AES.new(key,AES.MODE_ECB)
+        d_api = cipher.decrypt(base64.b64decode(e_api))
+        logger.info("The security keys to access the Freshdesk is decrypted")
+    except:
+        logger.error("The decrytion of security keys for Freshdesk failed, Please check")
+
+    api = (str(d_api, "utf-8")).strip()
+    dict_keys = {
+        'api':api
+        ,'domain':domain
+        ,'month':month
+       }
+    
+    return dict_keys

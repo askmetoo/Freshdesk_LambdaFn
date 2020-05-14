@@ -7,7 +7,6 @@ from business_duration import businessDuration
 from datetime import time,datetime
 from dateutil.relativedelta import relativedelta
 
-
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -266,8 +265,7 @@ class Agents(object):
         
     def get_AllAgentDetails(self):
         return self.AgentsDf
-
-    
+   
 class Groups(object):
     def __init__(self, api):
         self._api = api
@@ -306,8 +304,7 @@ class Groups(object):
         
     def get_AllGroupDetails(self):
         return self.GroupsDf
-    
-    
+      
 class Survey(object):
     def __init__(self, api):
         self._api = api
@@ -374,7 +371,6 @@ class Survey(object):
         
     def get_AllSurveyDetails(self):
         return self.SurveyDf
-
 
 class API(object):
     def __init__(self, domain, api_key,months):
