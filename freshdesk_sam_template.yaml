@@ -11,11 +11,11 @@ Resources:
     Properties:
       Handler: extract_freshdesk_s3.ExtractFreshdeskDataToS3
       Runtime: python3.7
-      CodeUri: Freshdesk_s3/
+      CodeUri: ./Freshdesk_s3
       Description: 'Lambda function for extraction of Freshdesk data to S3 bucket'
       MemorySize: 2500
       Timeout: 900
-      Role: 'arn:aws:iam::520060425081:role/lambdarole'
+      Role: 'arn:aws:iam::725304630819:role/hmlet-datalake-lambda-role'
       Layers: 
           - !Ref LambdaLayerLibrary 
       Events:
@@ -30,7 +30,7 @@ Resources:
           MONTHS: -1
           SOURCE_TZ: 'utc'
           DEST_TZ: 'Asia/Singapore'
-          FRESHDESK_BUCKET: 'freshdesks3'
+          FRESHDESK_BUCKET: 'hmlet-datalake-freshdesk-ap-southeast-1'
           FILE_FORMAT: 'csv'
   LambdaLayerLibrary:
     Type: AWS::Serverless::LayerVersion
