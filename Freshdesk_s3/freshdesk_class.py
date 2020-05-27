@@ -225,7 +225,7 @@ class Agents(object):
         if df_agents.empty:
             logger.warning("No Agents retieved from the freshdesk. Stop processing")
             sys.exit()
-        
+ 
         #------------------------------------------------------
         #Extend the agent contact fields to seperate columns
         #------------------------------------------------------
@@ -249,6 +249,8 @@ class Agents(object):
         if df_contact.empty:
             logger.warning("No Agent contacts retieved from the freshdesk. Stop processing")
             sys.exit()
+        
+        df_contact = df_contact.rename(columns={'created_at': 'agent_contact_created_at', 'updated_at': 'agent_contact_updated_at'})
         
         #------------------------------------------------------------
         #Concat agents, contacts dataframes and rename the columns
@@ -308,8 +310,9 @@ class Groups(object):
         return self.GroupsDf
       
 class Survey(object):
-    def __init__(self, api):
+    def __init__(self, api,months):
         self._api = api
+        self._months = months
         
     def createDf(self):
         self.SurveyDf = pd.DataFrame(data = None)
@@ -321,10 +324,17 @@ class Survey(object):
         page = 1
         per_page = 100
         surveys = []
+
+        rolling_months = datetime.now() + relativedelta(months=self._months)
+        datetime_since = rolling_months.replace(day=1,hour=0,minute=0,second=0)
+        datetime_since = datetime_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        url = url + '?created_since='+datetime_since
+        logger.info("The Freshdesk survey url: {}".format(url))
         
         # Skip pagination by looping over each page and adding groups
         while True:
-            this_page = self._api._get(url + '?page=%d&per_page=%d'
+            this_page = self._api._get(url + '&page=%d&per_page=%d'
                                        % (page, per_page), kwargs)
             surveys += this_page
             if len(this_page) < per_page:
@@ -396,7 +406,7 @@ class API(object):
         self.tickets = Tickets(self,months)
         self.agents  = Agents(self)
         self.groups  = Groups(self)
-        self.surveys = Survey(self)
+        self.surveys = Survey(self,months)
 
         if domain.find('freshdesk.com') < 0:
             logger.error('Problem with Freshdesk v2 API')

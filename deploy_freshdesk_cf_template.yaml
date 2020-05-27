@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sample SAM Template for Extraction of Freshdesh data to S3
+Globals:
+  Function:
+    Timeout: 900
+Resources:
+  FreshdeskLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: extract_freshdesk_s3.ExtractFreshdeskDataToS3
+      Runtime: python3.7
+      CodeUri: s3://hmlet-datalake-codefiles-ap-southeast-1/f1aff92d0c24b6fa37ddb8d6e5892327
+      Description: Lambda function for extraction of Freshdesk data to S3 bucket
+      MemorySize: 2500
+      Timeout: 900
+      Role: arn:aws:iam::725304630819:role/hmlet-datalake-lambda-role
+      Layers:
+      - Ref: LambdaLayerLibrary
+      Events:
+        ExtractFreshdesk:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 1 1 * ? *)
+      Environment:
+        Variables:
+          API: kknxYeSOYFLeZotEhLG
+          DOMAIN: hmlet.freshdesk.com
+          MONTHS: -1
+          SOURCE_TZ: utc
+          DEST_TZ: Asia/Singapore
+          FRESHDESK_BUCKET: hmlet-datalake-freshdesk-ap-southeast-1
+          FILE_FORMAT: csv
+  LambdaLayerLibrary:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: lambda-layer-library
+      Description: Lambda Layer to hold the python dependant libraries
+      ContentUri: s3://hmlet-datalake-codefiles-ap-southeast-1/c0a6e50f873760c69f94c29652eafb1d
+      CompatibleRuntimes:
+      - python3.7
+      LicenseInfo: MIT
+      RetentionPolicy: Delete
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Protocol: email
+        Endpoint: datasquad@hmlet.com
+  FreshdeskMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: FreshdeskLambdaFunction
+    Properties:
+      AlarmActions:
+      - Ref: AlarmTopic
+      AlarmName:
+        Fn::Sub: alarm-freshdesk-error-${FreshdeskLambdaFunction}
+      AlarmDescription: Alarm if there is any errors in extraction of freshdesk lamba
+        function
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: FunctionName
+        Value:
+          Ref: FreshdeskLambdaFunction
+      EvaluationPeriods: 1
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: 1

@@ -82,7 +82,7 @@ def ExtractFreshdeskDataToS3(event,context):
         sys.exit()
     
     # Store the file to the Freshdesk S3 bucket
-    fileName = 'Tbl_Tickets_'+timestr+'.'+file_format+'.gz'
+    fileName = 'Tickets/Tbl_Tickets_'+timestr+'.'+file_format+'.gz'
     Dataframe_to_s3(s3_resource, df_Tickets, bucketName, fileName, file_format)
     
     #----------------------------------------------------
@@ -105,7 +105,7 @@ def ExtractFreshdeskDataToS3(event,context):
         sys.exit()
     
     # Store the file to the Freshdesk S3 bucket
-    fileName = 'Tbl_Agents_'+timestr+'.'+file_format+'.gz'
+    fileName = 'Agents/Tbl_Agents_'+timestr+'.'+file_format+'.gz'
     Dataframe_to_s3(s3_resource, df_Agents, bucketName, fileName, file_format)
 
     #----------------------------------------------------
@@ -126,7 +126,7 @@ def ExtractFreshdeskDataToS3(event,context):
         sys.exit()
     
     # Store the file to the Freshdesk S3 bucket
-    fileName = 'Tbl_Groups_'+timestr+'.'+file_format+'.gz'
+    fileName = 'Groups/Tbl_Groups_'+timestr+'.'+file_format+'.gz'
     Dataframe_to_s3(s3_resource, df_Groups, bucketName, fileName, file_format)
 
     #----------------------------------------------------
@@ -147,5 +147,5 @@ def ExtractFreshdeskDataToS3(event,context):
         sys.exit()
 
     # Store the file to the Freshdesk S3 bucket
-    fileName = 'Tbl_Survey_'+timestr+'.'+file_format+'.gz'
+    fileName = 'Surveys/Tbl_Survey_'+timestr+'.'+file_format+'.gz'
     Dataframe_to_s3(s3_resource, df_Survey, bucketName, fileName, file_format)

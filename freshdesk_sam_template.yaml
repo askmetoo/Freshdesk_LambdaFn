@@ -11,7 +11,7 @@ Resources:
     Properties:
       Handler: extract_freshdesk_s3.ExtractFreshdeskDataToS3
       Runtime: python3.7
-      CodeUri: ./Freshdesk_s3
+      CodeUri: Freshdesk_s3/
       Description: 'Lambda function for extraction of Freshdesk data to S3 bucket'
       MemorySize: 2500
       Timeout: 900
@@ -22,7 +22,7 @@ Resources:
         ExtractFreshdesk:
           Type: Schedule
           Properties:
-            Schedule: cron(0/5 * * * ? *)
+            Schedule: cron(0 1 1 * ? *)
       Environment:
         Variables:
           API: 'kknxYeSOYFLeZotEhLG'
@@ -47,7 +47,7 @@ Resources:
     Properties:
       Subscription:
       - Protocol: email
-        Endpoint: 'nandhinidevi@hmlet.com'
+        Endpoint: 'datasquad@hmlet.com'
   FreshdeskMetricGreaterThanZeroAlarm:
     Type: AWS::CloudWatch::Alarm
     DependsOn: FreshdeskLambdaFunction
