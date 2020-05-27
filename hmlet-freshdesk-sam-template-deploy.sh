@@ -3,7 +3,6 @@
 # variables
 TEMPLATE_IN=freshdesk_sam_template.yaml
 TEMPLATE_OUT=deploy_freshdesk_cf_template.yaml
-#S3_BUCKET=hmlet-datalake-codefile-ap-southeast-1
 S3_BUCKET=hmlet-datalake-codefiles-ap-southeast-1
 STACK_NAME=hmlet-datalake-freshdesk-stack
 
